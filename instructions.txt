@@ -1,0 +1,27 @@
+pip install Flask[async] playwright google-generativeai flask-cors python-dotenv
+
+python -m playwright installpython
+
+
+URL To analyze
+https://client.andela.com/talent/profile/30bfd1f9-b3ce-4fe2-a286-f8852de2cced
+
+
+Luan Tafarel
+https://client.andela.com/talent/profile/04d0960b-7206-488d-b23f-fa225d343ade
+
+
+#Some prompts to Tweak
+Please fill in the following talent information using the provided template. Ensure the output is a direct listing for each detail, without any prefixes like "Talent Name:". the profile_url value is https://client.andela.com/talent/profile/04d0960b-7206-488d-b23f-fa225d343ade
+
+
+**{talent name}**
+**{talent role}**
+**{years of Experience} years of experience**
+**Location:** {location}
+**Availability:** {availability}
+**Overlap:** {overlap}
+**Profile:** {profile_url}
+
+{summary}
+{list 3 achievements}
