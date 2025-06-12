@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Content Analyzer & Chatbot</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Marked.js for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+        }
+        /* Custom scrollbar for chat and content areas */
+        .custom-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #e2e8f0; /* bg-gray-200 */
+            border-radius: 10px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #94a3b8; /* bg-gray-400 */
+            border-radius: 10px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #64748b; /* bg-gray-500 */
+        }
+        /* Markdown specific styling for the chat window and summary output */
+        .markdown-content {
+            white-space: pre-wrap; /* Preserve whitespace and line breaks */
+            word-break: break-word; /* Break long words */
+        }
+        .markdown-content p {
+            margin-bottom: 0.5em;
+        }
+        .markdown-content ul, .markdown-content ol {
+            padding-left: 1.5em;
+            margin-bottom: 0.5em;
+        }
+        .markdown-content li {
+            margin-bottom: 0.25em;
+        }
+        .markdown-content strong {
+            font-weight: 600;
+        }
+        .markdown-content em {
+            font-style: italic;
+        }
+        .markdown-content pre {
+            background-color: #e2e8f0; /* bg-gray-200 */
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Fira Code', 'Roboto Mono', monospace; /* Monospaced font for code */
+        }
+        .markdown-content code {
+            background-color: #e2e8f0;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-family: 'Fira Code', 'Roboto Mono', monospace;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-6xl flex flex-col gap-8">
+
+        <!-- Top Grid Section: 3 Columns for Input Fields -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+            <!-- Column 1: Web Content URL/Selector Input and Analyze Button -->
+            <div class="space-y-6">
+                <h2 class="text-2xl font-bold text-gray-800 text-center">Web Content Input</h2>
+
+                <div class="space-y-4">
+                    <div>
+                        <label for="urlInput" class="block text-gray-700 text-sm font-semibold mb-2">Website URL:</label>
+                        <input type="url" id="urlInput" placeholder="e.g., https://www.example.com"
+                               class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label for="selectorInput" class="block text-gray-700 text-sm font-semibold mb-2">CSS Selector (optional):</label>
+                        <input type="text" id="selectorInput" placeholder="e.g., body, .main-content, #article-text" value=".profile"
+                               class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <!-- Analyze button is now here, with loading and error indicators -->
+                    <button id="analyzeButton"
+                            class="w-full md:w-fit md:mx-auto bg-blue-600 text-white font-bold p-3 rounded-md hover:bg-blue-700 transition duration-300 ease-in-out shadow-md">
+                        Analyze Content
+                    </button>
+                    <div id="loadingIndicator" class="text-blue-500 text-center hidden">
+                        <div class="flex items-center justify-center space-x-2">
+                            <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>Analyzing... Please wait.</span>
+                        </div>
+                    </div>
+                    <div id="analyzeError" class="text-red-600 text-sm hidden"></div>
+                </div>
+            </div>
+
+            <!-- Column 2: Call Transcript Input -->
+            <div class="space-y-6">
+                <h2 class="text-2xl font-bold text-gray-800 text-center">Call Transcript Input</h2>
+                <div>
+                    <label for="transcriptInput" class="block text-gray-700 text-sm font-semibold mb-2">Paste Call Transcript Here:</label>
+                    <textarea id="transcriptInput" placeholder="Paste your call transcript or meeting notes here..."
+                              class="w-full h-64 p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-y custom-scroll"></textarea>
+                </div>
+            </div>
+
+            <!-- Column 3: Job Description Input -->
+            <div class="space-y-6">
+                <h2 class="text-2xl font-bold text-gray-800 text-center">Job Description Input</h2>
+                <div>
+                    <label for="jobDescriptionInput" class="block text-gray-700 text-sm font-semibold mb-2">Paste Job Description Here:</label>
+                    <textarea id="jobDescriptionInput" placeholder="Paste the job description here..."
+                              class="w-full h-64 p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-y custom-scroll"></textarea>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Analyzed Web Content Output Section (Full width, above Talent Summary) -->
+        <div class="w-full space-y-6 mt-8 pt-4 border-t border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-800 text-center">Extracted Web Content</h2>
+            <p class="text-gray-600 text-center text-sm">Review the extracted content from the provided URL.</p>
+
+            <div>
+                <label for="extractedContent" class="block text-gray-700 text-sm font-semibold mb-2">Extracted Content:</label>
+                <textarea id="extractedContent" readonly
+                          class="w-full h-64 p-3 border border-gray-300 rounded-md bg-gray-50 text-gray-800 resize-y custom-scroll focus:outline-none"></textarea>
+            </div>
+        </div>
+
+        <!-- Talent Summary Generator Section (Full width, above chat) -->
+        <div class="w-full space-y-6 mt-8 pt-4 border-t border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-800 text-center">Generate Talent Summary</h2>
+            <p class="text-gray-600 text-center text-sm">Combines content from the extracted URL, call transcript, and job description to create a comprehensive talent summary.</p>
+            
+            <button id="generateTalentSummaryButton"
+                    class="w-full md:w-fit md:mx-auto bg-indigo-600 text-white font-bold p-3 rounded-md hover:bg-indigo-700 transition duration-300 ease-in-out shadow-md">
+                Generate Talent Summary
+            </button>
+            <div id="talentSummaryLoadingIndicator" class="text-indigo-500 text-center hidden">
+                <div class="flex items-center justify-center space-x-2">
+                    <svg class="animate-spin h-5 w-5 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Generating Talent Summary...</span>
+                </div>
+            </div>
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <label for="talentSummaryOutput" class="block text-gray-700 text-sm font-semibold">Talent Summary:</label>
+                    <button id="copyTalentSummaryButton"
+                            class="bg-gray-200 text-gray-700 px-3 py-1 rounded-md text-sm hover:bg-gray-300 transition duration-200 ease-in-out flex items-center space-x-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2m-4-4l4-4m0 0l-4-4m4 4H9"></path>
+                        </svg>
+                        <span>Copy</span>
+                    </button>
+                </div>
+                <div id="talentSummaryOutput"
+                     class="w-full h-48 p-3 border border-gray-300 rounded-md bg-gray-50 text-gray-800 custom-scroll overflow-y-auto markdown-content">
+                    <!-- Talent summary content will be rendered here -->
+                </div>
+            </div>
+            <div id="talentSummaryError" class="text-red-600 text-sm hidden"></div>
+        </div>
+
+        <!-- New: Talent Submission Template Section (Full width, above chat) -->
+        <div class="w-full space-y-6 mt-8 pt-4 border-t border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-800 text-center">Generate Talent Submission Template</h2>
+            <p class="text-gray-600 text-center text-sm">Creates a submission template based on the extracted content, transcript, and job description.</p>
+            
+            <button id="generateTalentSubmissionTemplateButton"
+                    class="w-full md:w-fit md:mx-auto bg-green-700 text-white font-bold p-3 rounded-md hover:bg-green-800 transition duration-300 ease-in-out shadow-md">
+                Generate Client Template
+            </button>
+            <div id="submissionTemplateLoadingIndicator" class="text-green-700 text-center hidden">
+                <div class="flex items-center justify-center space-x-2">
+                    <svg class="animate-spin h-5 w-5 text-green-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Generating Template...</span>
+                </div>
+            </div>
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <label for="talentSubmissionTemplateOutput" class="block text-gray-700 text-sm font-semibold">Submission Template:</label>
+                    <button id="copyTalentSubmissionTemplateButton"
+                            class="bg-gray-200 text-gray-700 px-3 py-1 rounded-md text-sm hover:bg-gray-300 transition duration-200 ease-in-out flex items-center space-x-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0-002-2v-2m-4-4l4-4m0 0l-4-4m4 4H9"></path>
+                        </svg>
+                        <span>Copy</span>
+                    </button>
+                </div>
+                <div id="talentSubmissionTemplateOutput"
+                     class="w-full h-48 p-3 border border-gray-300 rounded-md bg-gray-50 text-gray-800 custom-scroll overflow-y-auto markdown-content">
+                    <!-- Talent submission template content will be rendered here -->
+                </div>
+            </div>
+            <div id="submissionTemplateError" class="text-red-600 text-sm hidden"></div>
+        </div>
+
+
+        <!-- Chatbot Section (always full width at the bottom) -->
+        <div class="w-full space-y-6 mt-8 pt-4 border-t border-gray-200">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Chat with Content</h2>
+
+            <div id="chatWindow" class="flex-1 bg-gray-50 p-4 rounded-md border border-gray-200 overflow-y-auto custom-scroll flex flex-col max-h-[400px]">
+                <!-- Chat messages will be appended here -->
+                <div class="text-gray-500 text-center text-sm py-2">
+                    Start by analyzing content, or pasting transcript/job description, then type your questions below!
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <!-- Changed from input type="text" to textarea -->
+                <textarea id="chatInput" placeholder="Ask about the content..."
+                          class="flex-1 p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y custom-scroll min-h-[48px]"
+                          rows="1" disabled></textarea>
+                <button id="sendMessageButton"
+                        class="bg-green-600 text-white font-bold p-3 rounded-md hover:bg-green-700 transition duration-300 ease-in-out shadow-md" disabled>
+                    Send
+                </button>
+            </div>
+            <div id="chatError" class="text-red-600 text-sm hidden"></div>
+        </div>
+    </div>
+
+    <!-- Link to external JavaScript file -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
