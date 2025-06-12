@@ -17,7 +17,7 @@ This project aims to help Matching team to create vetting notes, talent summary 
 - Javascript
 
 ## Gemini API
-This project requires you to create a `.env` file at the root of the folder with the following content:
+This project requires you to create a `.env` file at the root of the folder with the following content (If not exists):
 
 `GEMINI_API_KEY="YOUR_API_KEY_HERE"`
 
